@@ -23,18 +23,24 @@ v=normcdf(V,vnorm(1),vnorm(2));
 u=norminv(u);
 v=norminv(v);
 %% VAR - AR 1-10
-Mdl=vgxset('n',2,'nAR',1);
-[EstMdl1,~,LLF1] = vgxvarx(Mdl,[u v]);
-[~,NumActive1] = vgxcount(EstMdl1);
-Mdl=vgxset('n',2,'nAR',2);
-[EstMdl2,~,LLF2] = vgxvarx(Mdl,[u v]);
-[~,NumActive2] = vgxcount(EstMdl2);
-Mdl=vgxset('n',2,'nAR',3);
-[EstMdl3,~,LLF3] = vgxvarx(Mdl,[u v]);
-[~,NumActive3] = vgxcount(EstMdl3);
-Mdl=vgxset('n',2,'nAR',4);
-[EstMdl4,~,LLF4] = vgxvarx(Mdl,[u v]);
-[~,NumActive4] = vgxcount(EstMdl4);
+u = double(u);
+v = double(v);
+Mdl = varm(2,1);% vgxset('n',2,'nAR',1);
+[EstMdl1,~,LLF1] = estimate(Mdl,[u v]);% v gxvarx(Mdl,[u v]);
+% [~,NumActive1] = vgxcount(EstMdl1);
+result1 = summarize(EstMdl1);NumActive1 = result1.NumEstimatedParameters;
+Mdl = varm(2,2);% vgxset('n',2,'nAR',2); 
+[EstMdl2,~,LLF2] = estimate(Mdl,[u v]);% vgxvarx(Mdl,[u v]);
+% [~,NumActive1] = vgxcount(EstMdl2);
+result2 = summarize(EstMdl2);NumActive2 = result2.NumEstimatedParameters;
+Mdl = varm(2,3);% vgxset('n',2,'nAR',3); 
+[EstMdl3,~,LLF3] = estimate(Mdl,[u v]);% vgxvarx(Mdl,[u v]);
+% [~,NumActive1] = vgxcount(EstMdl3);
+result3 = summarize(EstMdl3);NumActive3 = result3.NumEstimatedParameters;
+Mdl = varm(2,4);% vgxset('n',2,'nAR',4); 
+[EstMdl4,~,LLF4] = estimate(Mdl,[u v]);% vgxvarx(Mdl,[u v]);
+% [~,NumActive1] = vgxcount(EstMdl4);
+result4 = summarize(EstMdl4);NumActive4 = result4.NumEstimatedParameters;
 AIC = aicbic([LLF1 LLF2 LLF3 LLF4],[NumActive1 NumActive2 NumActive3 NumActive4]);
 %% Choose the model to use
 switch find(min(AIC)==AIC)
@@ -49,7 +55,7 @@ switch find(min(AIC)==AIC)
 end
 %% Plot Partial Autocorrelation Function (PACF)
 if plotPACF
-    [ S ] = vgxsim(EstMdl,size(u,1));
+    [ S ] = simulate(EstMdl,size(u,1));% vgxsim(EstMdl,size(u,1));
     h(1)=figure('units','normalized','outerposition',[0 0 1 1]);
     subplot(2,2,1)
     parcorr(u,numLags);
