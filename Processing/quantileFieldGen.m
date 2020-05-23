@@ -61,11 +61,19 @@ for i = t(1)*2:t(2)*2
     temp_re(rep_ind) = temp_re(sam_ind);
     temp_im(rep_ind) = -temp_im(sam_ind); 
     noise_map = temp_re + 1i*temp_im; 
+    
     if mod(i,2)==0 % Even numbers
+        
         field = real(ifft2(ifftshift(noise_map.*FILTER),'symmetric'));
-        u=round((simU(i/2)/1000)*60*dt/dx);
-        v=round((simV(i/2)/1000)*60*dt/dx);
-        field=circshift(field,[v+V u+U]);
+        
+        % Yt: In previous code, speed < 11.8 Km/h cannot move becasue of 'round'. 
+        % u=round((simU(i/2)/1000)*60*dt/dx);% deleted by YT
+        % v=round((simV(i/2)/1000)*60*dt/dx);% deleted by YT
+        % field=circshift(field,[v+V u+U]);% deleted by YT
+        
+        u=(simU(i/2)/1000)*60*dt/dx;% addeded by YT
+        v=(simV(i/2)/1000)*60*dt/dx;% addeded by YT
+        field=circshift(field,round([v+V u+U])); % addeded by YT
         V=v+V;
         U=u+U;
         num_el = numel(field);
@@ -74,7 +82,12 @@ for i = t(1)*2:t(2)*2
         R(index) = 1:num_el;
         R = reshape(R, size(field));
         tmp = R/(num_el+1);
-        qField{i/2} = tmp(1:dim(1)/2,1:dim(2)/2);
+        
+        % qField{i/2} = tmp(1:dim(1)/2,1:dim(2)/2);% deleted by YT
+        
+        centInd = round(dim(1)/4):round(dim(1)/4)+dim(1)/2-1;% addeded by YT
+        qField{i/2} = tmp(centInd,centInd);% addeded by YT
+        
     end
     buffer_re(:,1:end-1) = buffer_re(:,2:end);
     buffer_im(:,1:end-1) = buffer_im(:,2:end);
@@ -85,5 +98,5 @@ for i = t(1)*2:t(2)*2
     buffer_re_ma(:,end) = err_noise_re;
     buffer_im_ma(:,end) = err_noise_im;
 end
-qField=permute(cat(3,qField{:}),[1 2 3]);
+qField=permute(cat(3,qField{:}),[3 1 2]);%%%%%%[1 2 3]);%%%% yt:Order changed to [T,loc1,loc2]
 end
