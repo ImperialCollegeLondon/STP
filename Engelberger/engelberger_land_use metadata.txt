@@ -1,0 +1,4 @@
+engelberger_land_use.txt
+---
+100 m x 100 m land use map of the Engelberger catchment. Conversion of the land use to a roughness can be found within the Matlab code.
+Data from Arealstatistik nach Nomenklatur 2004 Switzerland.

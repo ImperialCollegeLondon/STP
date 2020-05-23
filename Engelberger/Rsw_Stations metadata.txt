@@ -1,0 +1,12 @@
+Rsw_Stations.mat
+---
+Rsw_Stations.name - Station name, {string}.
+Rsw_Stations.elevation - elevation [m a.s.l.], {scalar}.
+Rsw_Stations.Time - Matlab date format, {N x 1 vector}.
+Rsw_Stations.Rsw - Short incomin radiation [W/m^2], {N x 1 vector}.
+Rsw_Stations.Ta - Near surface (2-m) air temperature [deg. C], {N x 1 vector}.
+Rsw_Stations.RH - Relative humidity [%], {N x 1 vector}.
+
+N - Sample size.
+
+For Engelberger catchment- Data were derived from the MeteoSwiss hourly station data for the period 2000-2014.

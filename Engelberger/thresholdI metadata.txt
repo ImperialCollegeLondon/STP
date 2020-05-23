@@ -1,0 +1,7 @@
+thresholdI.mat
+---
+thresholdI - Threshold of simulated daily rain [mm] from which the day is consider as above 1 mm (i,j). 
+
+i,j - domain size
+
+For Engelberger catchment- Parameter is estimated after simulating 30 years of data, see 'I_Threshold_estimation.mat' for an example.

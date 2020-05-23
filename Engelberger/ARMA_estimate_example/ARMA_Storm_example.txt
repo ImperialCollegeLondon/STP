@@ -1,0 +1,9 @@
+ARMA_Storm_example.mat
+---
+R - Rainfall intensity [mm h^-1], {N x I x J array}.
+
+N - Storm size (number of time steps)
+I and J - domain size 
+
+For Engelberger catchment- data was derived from the MeteoSwiss weather radar system using a 2-km grid and a domain size of 26 km x 26 km for the period 2003-2010.
+Each time step is 5-min

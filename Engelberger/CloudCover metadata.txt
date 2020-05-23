@@ -1,0 +1,6 @@
+CloudCover.mat
+---
+CloudCover.data - Hourly cloud cover fraction [-]
+CloudCover.time - Time [matlab format]
+
+For Engelberger catchment- data was derived from Merra hourly products for the period 1984-2014.

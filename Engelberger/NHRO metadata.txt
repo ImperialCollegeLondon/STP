@@ -1,0 +1,9 @@
+NHRO.mat
+---
+NHRO.occurence - Mean number of days above a certain threshold {Y x P}. 
+
+Y - Years
+P - number of pixels in the domain
+
+For Engelberger catchment- NHRO was derived from daily MeteoSwiss gridded rainfall data, 2-km resolution, for the period 1981-2012.
+A day is recorded as wet exceeding a rainfall threshold of 1 mm per day.

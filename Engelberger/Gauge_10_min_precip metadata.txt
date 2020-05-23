@@ -1,0 +1,5 @@
+Gauge_10_min_precip.mat
+---
+MERGED - Rainfall 10-min time series (1-rain, 0-no rain) for the Engelberger domian, composed of 4 rain gauges surronding the domain. First vector is boolean and second vector is date [matlab format].
+
+ALT, ENG, LUZ and PIL - Data of the 4 rain gauges from which the MERGED vector was derived for the period 1983-2013 (including)

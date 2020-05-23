@@ -1,0 +1,9 @@
+Ta_Stations.mat
+---
+
+Ta_Stations{x}{y}{z}(i,j) - Hourly temperature data [deg Celsius].
+x - temperature station within the catchment
+y - 1 - station name; 2 - station elevation (masl); 3 - Temperature data, for which i is the vector of observation and j is the vector of date [matlab format]
+
+
+For Engelberger catchment- data was derived from MeteoSwiss stations for different periods (see data in file)

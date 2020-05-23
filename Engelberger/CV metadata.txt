@@ -1,0 +1,5 @@
+CV.mat
+---
+CV - Rainfall coefficient of variation [-], monthly {12x1 vector}.
+
+For Engelberger catchment- data was derived from the MeteoSwiss weather radar system using a 2-km grid and a domain size of 26 km x 26 km for the period 2003-2010.

@@ -1,0 +1,11 @@
+gpFitSO.mat
+---
+gpFitS - Generalized Pareto parameters for the simulated daily rainfall {1x2}{m}(i,j).
+gpFitO - Generalized Pareto parameters for the observed daily rainfall {1x2}{m}(i,j).
+
+First cell is for the K parameter and second cell is for the Sigma parameter
+m - month
+i,j - domain size
+
+For Engelberger catchment- GP parameters were derived from daily MeteoSwiss gridded rainfall data, 2-km resolution, for the period 1981-2012.
+A 30 years simulation was generated and analyzed for the simulated GP parameres, see 'Rainfall_accumulation_estimation' for example

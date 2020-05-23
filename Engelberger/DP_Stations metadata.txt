@@ -1,0 +1,9 @@
+DP_Stations.mat
+---
+DP_Stations.name - Station name, {string}.
+DP_Stations.Time - Matlab date format, {N x 1 vector}.
+DP_Stations.DP - Dew point temperature [deg. C], {N x 1 vector}.
+
+N - Sample size.
+
+For Engelberger catchment- Data were derived from the MeteoSwiss hourly station data for the period 2006-2016.

@@ -1,0 +1,13 @@
+ARMA.mat
+---
+ARMA.ar - Autoregressive components for the Largrangian field [-], {N, empty scalar for zero}.
+ARMA.ma - Moving average components for the Largrangian field [-], {N, empty scalar for zero}.
+
+N - number of components
+
+For Engelberger catchment- ARMA was calculated using the MeteoSwiss weather radar system (2-km grid) for a domain size of 26 km x 26 km for the period 2003-2010.
+An example Matlab script for estimating the ARMA products is given in "ARMA_estimate.m" file and an example to a storm is saved in ARMA_Storm_example.mat
+
+To execute: 
+load('ARMA_Storm_example.mat')
+ARMA=ARMA_estimate(R);

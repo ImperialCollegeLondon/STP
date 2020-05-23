@@ -1,0 +1,10 @@
+Ps_Stations.mat
+---
+Ps_Stations.name - Station name, {string}.
+Ps_Stations.elevation - elevation [m a.s.l.], {scalar}.
+Ps_Stations.Time - Matlab date format, {N x 1 vector}.
+Ps_Stations.Ps - Pressure at station level (QFE); hourly mean [hPa], {N x 1 vector}.
+
+N - Sample size.
+
+For Engelberger catchment- Data were derived from the MeteoSwiss hourly station data for the period 2004-2014.
