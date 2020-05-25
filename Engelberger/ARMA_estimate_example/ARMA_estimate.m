@@ -1,11 +1,22 @@
-function [ ARMA ] = ARMA_estimate( R )
+function [ ARMA ] = ARMA_estimate( R, timeDim, pl )
 %%
 %ARMA_estimate This is an example for estimating the ARMA parameters for the Lagrangian system of coordinates
 %This example is for a SINGLE storm and given only as an example and code suggestion.
 %For further details see Paschalis (2013):
+%% 
+% Input: R: [time, loc1, loc2]
+% Output: ARMA
 %%
 % <http://e-collection.library.ethz.ch/view/eth:7209 MODELLING THE SPACE-TIME STRUCTURE OF PRECIPITATION AND ITS IMPACT ON BASIN RESPONSE, DISS. ETH No. 21112>.
-%%
+
+%% input checking
+if timeDim == 1
+    % ok
+elseif timeDim == 3
+    R = permute(R,[3,1,2]);
+else
+    error('Please Check Dimension order of R.');
+end
 %% Initilazing
 lag=15; % Number of lags
 BS=1; % Block size (increase for a larger domain)
@@ -16,7 +27,22 @@ for i=1:size(R,1)
     for tlag=0:lag
         if tlag+i<size(R,1)
             % Identify corelation on the space-time distrortion
-            im1=BlockMean(squeeze(R(i,:,:)),BS); % Convert to boolean value (1-rain, 2-no rain)
+            im1=BlockMean(squeeze(R(i,:,:)),BS); % Convert to boolean value (1-rain, 0-no rain)
+            % 
+            % # Update on func 'BlockMean' #
+            % In original func blockmean, im1/im2 is double when R is double,
+            % is boolean when R is not double.
+            % However, isa(R,'single') is taken into account and output became
+            % to boolean.
+            %
+            % I think for <single> rainfall data, output should also be 
+            % <single>/<double>.
+            % (because in the model, ARMA coef is used for estimating value, 
+            % instead of for estimating rain/no-rain).
+            %
+            % 2020.05.25
+            % @ Yuting
+            % 
             im2=BlockMean(squeeze(R(i+tlag,:,:)),BS);
             war1=mean2(R(i,:,:)>0);
             war2=mean2(R(i+tlag,:,:)>0);
@@ -40,7 +66,7 @@ mean_spatial_correlation(2,:)=mean_spatial_correlation(1,:); % The storm is repe
 %% ARMA estimation
 c=1;
 for i=2:4 % Auto-regressive order
-    for j=2:4 % Moving average order
+    for j=0:4 % Moving average order
         [ ar_coefs , th ] = Estimate_ARMA_coef_corr( nanmean(mean_spatial_correlation) , i , j , length(nanmean(mean_spatial_correlation)));
         ARMA(c).ar=ar_coefs{1};
         ARMA(c).ma=ar_coefs{2};
@@ -50,26 +76,30 @@ for i=2:4 % Auto-regressive order
     end
 end
 %% Plot
-figure('units','normalized','outerposition',[0 0 1 1]);
-c=1;
-tempx = (0:lag)*5;
-for i=2:4
-    for j=2:4
-        subplot(3,3,c)
-        plot(tempx,nanmean(mean_spatial_correlation),'marker','.','linestyle','none','markerfacecolor','black');
-        hold on;
-        tempxx = (0:(length(ARMA(c).th)-1))*5;
-        plot(tempxx,ARMA(c).th,'linewidth',1,'color','r');
-        box on
-        xlabel('Lag [min]');
-        ylabel('ACF [-]')
-        legend({'Observed','Fit'});
-        title(['ARMA(',num2str(i),',',num2str(j),') RMSE=',num2str(ARMA(c).rmse)]);
-        c=c+1;
+if pl
+    figure('units','normalized','outerposition',[0 0 1 1]);
+    c=1;
+    tempx = (0:lag)*5;
+    for i=2:4
+        for j=0:4
+            subplot(3,5,c)
+            plot(tempx,nanmean(mean_spatial_correlation),'marker','.','linestyle','none','markerfacecolor','black');
+            hold on;
+            tempxx = (0:(length(ARMA(c).th)-1))*5;
+            plot(tempxx,ARMA(c).th,'linewidth',1,'color','r');
+            box on
+            xlabel('Lag [min]');
+            ylabel('ACF [-]')
+            legend({'Observed','Fit'});
+            title(['ARMA(',num2str(i),',',num2str(j),') RMSE=',num2str(ARMA(c).rmse)]);
+            c=c+1;
+            ylim([0.6,1])
+        end
     end
+    c=find(min([ARMA.rmse])==[ARMA.rmse]);
+    set(subplot(3,5,c),'Color',[135/255 206/255 250/255]);
 end
-c=find(min([ARMA.rmse])==[ARMA.rmse]);
-set(subplot(3,3,c),'Color',[135/255 206/255 250/255]);
+
 %% Nested functions
 %% BlockMean
     function Y = BlockMean(X,V)
@@ -86,8 +116,8 @@ set(subplot(3,3,c),'Color',[135/255 206/255 250/255]);
         MV = M / V;
         NW = N / W;
         XM = reshape(X(1:M, 1:N, :), V, MV, W, NW, []);
-        if isa(X, 'double')
-            Y = sum(sum(XM, 1), 3) .* (1.0 / (V * W));
+        if isa(X, 'double') || isa(X, 'single')
+            Y = sum(sum(XM, 1), 3) ./ (V * W);
         elseif uint8(0.8) == 1
             Y = uint8(sum(sum(XM, 1), 3) ./ (V * W));
         else
