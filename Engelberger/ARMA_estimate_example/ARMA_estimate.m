@@ -6,8 +6,8 @@ function [ ARMA, mean_spatial_correlation ] = ARMA_estimate( Rains, timeDim, pl 
 
 %% 
 % Input: Rains: [time, loc1, loc2]
-% Output: ARMA
-% Example: [ ARMA ] = ARMA_estimate( R, 1, false )
+% Output: ARMA, mean_spatial_correlation
+% Example: [ ARMA, mean_spatial_correlation ] = ARMA_estimate( R, 1, false )
 %%
 % <http://e-collection.library.ethz.ch/view/eth:7209 MODELLING THE SPACE-TIME STRUCTURE OF PRECIPITATION AND ITS IMPACT ON BASIN RESPONSE, DISS. ETH No. 21112>.
 
@@ -90,8 +90,7 @@ for evi = 1:length(Rains)
     av_lang_corr(1)=1;
     mean_spatial_correlation(evi,:)=av_lang_corr; % For multiply storms analysis, each storm is stored in this array
 end
-ARMA = [];
-return;
+
 %% ARMA estimation
 c=1;
 for i=1:4 % Auto-regressive order

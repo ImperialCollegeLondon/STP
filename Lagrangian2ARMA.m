@@ -1,64 +1,53 @@
 
 clear;clc
-
 load('H:\CODE_MATLAB\calEvents.mat','calEvents','speed','EventSUMMARY','ObsSUMMARY');
 load('H:\CODE_MATLAB\calEvents_Lagrangian.mat','calEvents_Lagrangian');
-
-%%
-
-colm = flip(pink(80),1);
-colm(1:20,:) = [];
-evi = 1;
+%% Obtain R field.
+evi = 0;
+[Rains,Rmon] = deal([]);
 for calEvent = calEvents_Lagrangian'
-    
-    [rain] = originalData(calEvent,'double');
-    timestep = 12*2; % 2 hours 
-    [autoCorr,lags,dur] = getACF(rain,timestep);
-    
-    plot(lags,nanmean(autoCorr,1),'color',colm(evi,:));
-    
+    [R] = originalData(calEvent,'double');
+    [RTime] = getTime(calEvent);
+    % remove those events with missing data
+    if any(isnan(R(:)))
+        % # to confirm #
+        % correct NaN val into ...
+        if nanmean(isnan(R(:)))<0.1
+            R(isnan(R(:))) = rand(nansum(isnan(R(:))),1)*1*nanmean(R(:));
+        end
+        evi = evi+1;
+        Rains{evi,1} = R;
+        Rmon(evi,1) = RTime(1).Month;        
+    else
+        evi = evi+1;
+        Rains{evi,1} = R;
+        Rmon(evi,1) = RTime(1).Month;
+    end
+end
+%% Estimate ARMA coef. (p [1,4], q [0,4])
+[ ARMA, mean_spatial_correlation ] = ARMA_estimate( Rains, 1, true );
+pause(1)
+savePlot(['Figs\Lagrangian\event',num2str(evi),'-ARMAfit'],...
+    'wholepage',true,'onlyPng',true,'needreply','N');
+close(gcf);
+save('Birmingham\ARMA.mat','ARMA','mean_spatial_correlation','Rains')
+%% Plot Fitting result
+figure;
+colm = flip(pink(20),1);
+colm(1:8,:) = [];
+for evi = 1:size(mean_spatial_correlation,1)
+    autoCorr = mean_spatial_correlation(evi,:);
+    plot(lags,nanmean(autoCorr,1),'color',colm(Rmon(evi),:));
     hold on;
     drawnow
-    evi = evi+1;
 end
 xlabel('Lag');
 ylabel('acf in lagrangian coor');
 savePlot(['Figs\Lagrangian\TemporalEvol'],...
         'wholepage',true,'onlyPng',true,'needreply','N');
-%%
-evi = 0;
-Rains = [];
-for calEvent = calEvents_Lagrangian'
-    [R] = originalData(calEvent,'double');
-    [RTime] = getTime(calEvent);
-    Rmon = RTime(1).Month;
-    % remove those events with missing data
-    if any(isnan(R(:)))
-        % # to do #
-        % correct NaN val into ...
-    else
-        evi = evi+1;
-        Rains{evi,1} = R;
-    end
-end
-[ ARMA, mean_spatial_correlation ] = ARMA_estimate( Rains, 1, true );
-%%
-try
-    [ ARMA, mean_spatial_correlation ] = ARMA_estimate( Rains, 1, true );
-    pause(1)
-    savePlot(['Figs\Lagrangian\event',num2str(evi),'-ARMAfit'],...
-        'wholepage',true,'onlyPng',true,'needreply','N');
-    close(gcf);
-catch me
-    fprintf('>>> Check Event No.%03d\n', evi);
-end
-
-save('Birmingham\ARMA.mat','ARMA','Rains')
 
 
-
-
-
+    
 %%
 for i=0:4
     for j=0:4
@@ -72,19 +61,4 @@ end
 % Choose the model to use
 [i,j]=find(min(min(AIC))==AIC);
 Mdl=arima(i-1,0,j-1);
-
-
-
-function [autoCorr,lags,dur] = getACF(rain,timestep)
-% dur: unit-[h]
-autoCorr = [];
-[autoCorr,lags,dur] = deal([]);
-dur = size(rain,3)/12;
-
-rain = reshape(rain,[],size(rain,3));
-for i = 1:size(rain,1)
-    [autoCorr(i,:),lags,~] = autocorr(rain(i,:),timestep);
-end
-
-end
 
