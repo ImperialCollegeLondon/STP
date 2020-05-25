@@ -1,71 +1,100 @@
-function [ ARMA ] = ARMA_estimate( R, timeDim, pl )
+function [ ARMA, mean_spatial_correlation ] = ARMA_estimate( Rains, timeDim, pl )
 %%
 %ARMA_estimate This is an example for estimating the ARMA parameters for the Lagrangian system of coordinates
 %This example is for a SINGLE storm and given only as an example and code suggestion.
 %For further details see Paschalis (2013):
+
 %% 
-% Input: R: [time, loc1, loc2]
+% Input: Rains: [time, loc1, loc2]
 % Output: ARMA
+% Example: [ ARMA ] = ARMA_estimate( R, 1, false )
 %%
 % <http://e-collection.library.ethz.ch/view/eth:7209 MODELLING THE SPACE-TIME STRUCTURE OF PRECIPITATION AND ITS IMPACT ON BASIN RESPONSE, DISS. ETH No. 21112>.
 
 %% input checking
+if iscell(Rains)
+    
+else
+    Rains = {Rains};
+end
 if timeDim == 1
     % ok
 elseif timeDim == 3
-    R = permute(R,[3,1,2]);
+    Rains = permute(Rains,[3,1,2,4]);
 else
     error('Please Check Dimension order of R.');
 end
+
 %% Initilazing
-lag=15; % Number of lags
-BS=1; % Block size (increase for a larger domain)
+lag=12*2;% 15; % Number of lags 
+% # update #
+% lag is increased for a larger domain)-added by yuting in order to have a
+% good acf on a larger aggregation scale (2-h).
+BS=1; % Block size (increase for a larger domain) % why? - yuting
+mean_spatial_correlation = [];
 %% Find temporal correlation
-temp_autocorr(1:lag+1,1:size(R,1))=NaN;
-for i=1:size(R,1)
-    % Estimation of the Langrangian correlation
-    for tlag=0:lag
-        if tlag+i<size(R,1)
-            % Identify corelation on the space-time distrortion
-            im1=BlockMean(squeeze(R(i,:,:)),BS); % Convert to boolean value (1-rain, 0-no rain)
-            % 
-            % # Update on func 'BlockMean' #
-            % In original func blockmean, im1/im2 is double when R is double,
-            % is boolean when R is not double.
-            % However, isa(R,'single') is taken into account and output became
-            % to boolean.
-            %
-            % I think for <single> rainfall data, output should also be 
-            % <single>/<double>.
-            % (because in the model, ARMA coef is used for estimating value, 
-            % instead of for estimating rain/no-rain).
-            %
-            % 2020.05.25
-            % @ Yuting
-            % 
-            im2=BlockMean(squeeze(R(i+tlag,:,:)),BS);
-            war1=mean2(R(i,:,:)>0);
-            war2=mean2(R(i+tlag,:,:)>0);
-            if war1>.1 && war2>.1 % For larger domains the treshold should increase
-                try
-                    taut=normxcorr2(im1,im2); % Normalized 2D cross-correlation
-                    temp_autocorr(tlag+1,i)=nanmax(taut(:));
-                catch
+for evi = 1:length(Rains)
+    R = Rains{evi};
+    temp_autocorr(1:lag+1,1:size(R,1))=NaN;
+    for i=1:size(R,1)
+        % Estimation of the Langrangian correlation
+        for tlag=0:lag
+            if tlag+i<size(R,1)
+                % Identify corelation on the space-time distrortion
+                im1=BlockMean(squeeze(R(i,:,:)),BS); % Convert to boolean value (1-rain, 0-no rain)
+                %
+                % # Update on func 'BlockMean' #
+                % In original func blockmean, im1/im2 is double when R is double,
+                % is boolean when R is not double.
+                % However, isa(R,'single') is taken into account and output became
+                % to boolean.
+                %
+                % I think for <single> rainfall data, output should also be
+                % <single>/<double>.
+                % (because in the model, ARMA coef is used for estimating value,
+                % instead of for estimating rain/no-rain).
+                %
+                % 2020.05.25
+                % @ Yuting
+                %
+                im2=BlockMean(squeeze(R(i+tlag,:,:)),BS);
+                war1=mean2(R(i,:,:)>0);
+                war2=mean2(R(i+tlag,:,:)>0);
+                if war1>.02 && war2>.02
+                    % if war1>.1 && war2>.1 % For larger domains the treshold should increase
+                    %
+                    % # Update on thereshold of WAR #
+                    % Not sure why for larger domain this threshold
+                    % should increase.
+                    % Instead, I think it should decrease.
+                    % Otherwise, the ARMA coef will be inclined to those
+                    % large-area rainfall event (frontal)?
+                    % Therefore, I modified this threshold to a smaller value
+                    % (0.02) for my research domain (110 Km * 110 Km)
+                    % 2020.05.25
+                    % @ Yuting
+                    %
+                    try
+                        taut=normxcorr2(im1,im2); % Normalized 2D cross-correlation
+                        temp_autocorr(tlag+1,i)=nanmax(taut(:));
+                    catch
+                        temp_autocorr(tlag+1,i)=NaN;
+                    end
+                else
                     temp_autocorr(tlag+1,i)=NaN;
                 end
-            else
-                temp_autocorr(tlag+1,i)=NaN;
             end
         end
     end
+    av_lang_corr=nanmean(temp_autocorr(:,1:size(R,1)),2);
+    av_lang_corr(1)=1;
+    mean_spatial_correlation(evi,:)=av_lang_corr; % For multiply storms analysis, each storm is stored in this array
 end
-av_lang_corr=nanmean(temp_autocorr(:,1:size(R,1)),2);
-av_lang_corr(1)=1;
-mean_spatial_correlation(1,:)=av_lang_corr; % For multiply storms analysis, each storm is stored in this array
-mean_spatial_correlation(2,:)=mean_spatial_correlation(1,:); % The storm is repeated for the sake of example
+ARMA = [];
+return;
 %% ARMA estimation
 c=1;
-for i=2:4 % Auto-regressive order
+for i=1:4 % Auto-regressive order
     for j=0:4 % Moving average order
         [ ar_coefs , th ] = Estimate_ARMA_coef_corr( nanmean(mean_spatial_correlation) , i , j , length(nanmean(mean_spatial_correlation)));
         ARMA(c).ar=ar_coefs{1};
@@ -80,9 +109,9 @@ if pl
     figure('units','normalized','outerposition',[0 0 1 1]);
     c=1;
     tempx = (0:lag)*5;
-    for i=2:4
+    for i=1:4
         for j=0:4
-            subplot(3,5,c)
+            subplot(4,5,c)
             plot(tempx,nanmean(mean_spatial_correlation),'marker','.','linestyle','none','markerfacecolor','black');
             hold on;
             tempxx = (0:(length(ARMA(c).th)-1))*5;
@@ -93,11 +122,12 @@ if pl
             legend({'Observed','Fit'});
             title(['ARMA(',num2str(i),',',num2str(j),') RMSE=',num2str(ARMA(c).rmse)]);
             c=c+1;
-            ylim([0.6,1])
+            ylim([0.2,1])
         end
     end
     c=find(min([ARMA.rmse])==[ARMA.rmse]);
-    set(subplot(3,5,c),'Color',[135/255 206/255 250/255]);
+    set(subplot(4,5,c),'Color',[135/255 206/255 250/255],...
+        'xcolor','r','ycolor','r');
 end
 
 %% Nested functions
