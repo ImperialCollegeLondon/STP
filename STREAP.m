@@ -26,15 +26,20 @@ domainDTM=rasterread('engelberger_DTM.txt'); % 250 x 250 pixels [100 x 100 m] DT
 domainDTM=flipud(domainDTM);
 
 %% Rainfall event analysis - gauged based
-[ gaugeIsEvent ] = findGaugeEvents( MERGED(:,1) , 0.1 , 10 ); % Boolean vector defining an event for each 10-min; in this case, there is no meaning for the rainfall threshold (set arbitrary to 0.1 [mm]). Similar file exists for radar analysis: findRadarEvents
+[ gaugeIsEvent ] = findGaugeEvents( MERGED(:,1) , 0.1 , 10 ); 
 gaugeIsEvent(:,2) = MERGED(:,2);
 save('Files\gaugeIsEvent.mat','gaugeIsEvent','-v7.3');
+% Boolean vector defining an event for each 10-min; in this case, there is no meaning for the rainfall threshold (set arbitrary to 0.1 [mm]). 
+% Similar file exists for radar analysis: find RadarEvents
+[ radarIsEvent ] = findRadarEvents( MeanArealStats.WAR , 0.02 , 60 );
+radarIsEvent(:,2) = MeanArealStats.Time;
+save('Files\radarIsEvent.mat','radarIsEvent','-v7.3');
 
 %% Storm arrival process
 % Fitting distributions for the wet and dry periods
 for m=1:12
-    Precipitation.data(m).isWetEventG=gaugeIsEvent(month(gaugeIsEvent(:,2))==m);
-    Precipitation.data(m).isWetEventGyear=year(gaugeIsEvent(month(gaugeIsEvent(:,2))==m,2));
+    Precipitation.data(m).isWetEventG=radarIsEvent(month(radarIsEvent(:,2))==m);
+    Precipitation.data(m).isWetEventGyear=year(radarIsEvent(month(radarIsEvent(:,2))==m,2));
     Precipitation.data(m).isWetEventG(Precipitation.data(m).isWetEventG>1)=1;
     [ Precipitation.data(m).dryG , Precipitation.data(m).wetG , Precipitation.data(m).dryFitG , Precipitation.data(m).wetFitG ] = WetDryG( Precipitation.data(m).isWetEventG , Precipitation.data(m).isWetEventGyear , 1 , 10 );
     if m==1

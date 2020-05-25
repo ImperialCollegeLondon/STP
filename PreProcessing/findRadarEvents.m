@@ -34,6 +34,11 @@ for i=2:size(WAR,1)
     if i==size(WAR,1) && WAR(i)==1 && WAR(i-1)==1
         ee(size(ee,1)+1,1)=i-1;
     end
+    
+    if i==size(WAR,1) && WAR(i)==1 && WAR(i-1)==0 
+        % Additionally added by Yuting
+        ee(size(ee,1)+1,1)=i;
+    end
 end
 %% Checking for event length treshold
 checkTime=(ee-es)<thresholdTime/5;
