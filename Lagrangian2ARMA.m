@@ -14,10 +14,10 @@ for calEvent = calEvents_Lagrangian'
         % correct NaN val into ...
         if nanmean(isnan(R(:)))<0.1
             R(isnan(R(:))) = rand(nansum(isnan(R(:))),1)*1*nanmean(R(:));
+            evi = evi+1;
+            Rains{evi,1} = R;
+            Rmon(evi,1) = RTime(1).Month;
         end
-        evi = evi+1;
-        Rains{evi,1} = R;
-        Rmon(evi,1) = RTime(1).Month;        
     else
         evi = evi+1;
         Rains{evi,1} = R;
