@@ -30,35 +30,32 @@ pause(1)
 savePlot(['Figs\Lagrangian\event',num2str(evi),'-ARMAfit'],...
     'wholepage',true,'onlyPng',true,'needreply','N');
 close(gcf);
-save('Birmingham\ARMA.mat','ARMA','mean_spatial_correlation','Rains')
+save('Birmingham\ARMA.mat','ARMA','mean_spatial_correlation','Rains','-v7.3')
 %% Plot Fitting result
 figure;
-colm = flip(pink(20),1);
-colm(1:8,:) = [];
+colm = flip(pink(14),1);
+
 for evi = 1:size(mean_spatial_correlation,1)
     autoCorr = mean_spatial_correlation(evi,:);
-    plot(lags,nanmean(autoCorr,1),'color',colm(Rmon(evi),:));
+    lags = 0:length(autoCorr)-1;
+    plot(lags,autoCorr,'color',colm(Rmon(evi),:));
     hold on;
     drawnow
 end
 xlabel('Lag');
 ylabel('acf in lagrangian coor');
-savePlot(['Figs\Lagrangian\TemporalEvol'],...
-        'wholepage',true,'onlyPng',true,'needreply','N');
+savePlot(['Figs\Lagrangian\TemporalEvol'],'onlyPng',true,'needreply','N');
 
-
-    
-%%
-for i=0:4
-    for j=0:4
-        Mdl=arima(i,0,j);
-        [~,~,LLF] = estimate(Mdl,G);
-        NumActive = i+j+1;
-        AIC(i+1,j+1) = aicbic(LLF,NumActive);
-    end
-end
-
-% Choose the model to use
-[i,j]=find(min(min(AIC))==AIC);
-Mdl=arima(i-1,0,j-1);
+% for i=0:4
+%     for j=0:4
+%         Mdl=arima(i,0,j);
+%         [~,~,LLF] = estimate(Mdl,G);
+%         NumActive = i+j+1;
+%         AIC(i+1,j+1) = aicbic(LLF,NumActive);
+%     end
+% end
+% 
+% % Choose the model to use
+% [i,j]=find(min(min(AIC))==AIC);
+% Mdl=arima(i-1,0,j-1);
 

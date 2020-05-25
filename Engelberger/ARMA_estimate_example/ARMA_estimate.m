@@ -30,7 +30,7 @@ lag=12*2;% 15; % Number of lags
 % # update #
 % lag is increased for a larger domain)-added by yuting in order to have a
 % good acf on a larger aggregation scale (2-h).
-BS=1; % Block size (increase for a larger domain) % why? - yuting
+BS=3; %1; % Block size (increase for a larger domain)
 mean_spatial_correlation = [];
 %% Find temporal correlation
 for evi = 1:length(Rains)
