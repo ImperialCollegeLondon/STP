@@ -57,17 +57,19 @@ save('H:\CODE_MATLAB\calEvents_Lagrangian.mat','calEvents_Lagrangian','-v7.3');
 
 %% visualise
 unit = 1000;
-for evi = 1:numel(RE_lag)
+XX = calEvents500_Eulerian.XX;
+YY = calEvents500_Eulerian.YY;
+for evi = 1:numel(calEvents500_Lagrangian)
     rain = originalData(calEvents500_Eulerian(evi),'double');
-    RE = originalData(RE_lag(evi),'double');
-    for i = round(size(RE,1)/2) % i = 1:size(RE,1)
+    RE = originalData(calEvents500_Lagrangian(evi),'double');
+    for i = round(size(RE,3)/2) % i = 1:size(RE,1)
         subplot(1,2,1)
         R = squeeze(rain(:,:,i)); R(R==0) = NaN;
-        pcolor(RE_lag(evi).XX/unit,RE_lag(evi).YY/unit,R);shading flat;cptcmap('rain-mmh')
+        pcolor(XX/unit,YY/unit,R);shading flat;cptcmap('rain-mmh')
         title('Eulerian Coor')
         subplot(1,2,2)
-        R = squeeze(RE(i,:,:)); R(R==0) = NaN;
-        pcolor(RE_lag(evi).XX/unit,RE_lag(evi).YY/unit,R);shading flat;cptcmap('rain-mmh')
+        R = squeeze(RE(:,:,i)); R(R==0) = NaN;
+        pcolor(XX/unit,YY/unit,R);shading flat;cptcmap('rain-mmh')
         title('Lagrangian Coor')
         pause(0.1)
     end
