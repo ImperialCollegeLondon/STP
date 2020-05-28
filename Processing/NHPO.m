@@ -15,11 +15,13 @@ if max(A)>1
        if isempty(max(A(A<1)-1))
            break
        end
-       if 1-A(max(A(A<1)-1)==(A-1))<s
-           s=s-(1-A(max(A(A<1)-1)==(A-1)));
-           A(max(A(A<1)-1)==(A-1))=1;
+       ind = max(A(A<1)-1)==(A-1);
+       if 1-A(ind)<s
+           s=s-(1-A(ind));
+           s = unique(s);
+           A(ind)=1;
        else
-           A(max(A(A<1)-1)==(A-1))=A(max(A(A<1)-1)==(A-1))+s;
+           A(ind)=A(ind)+s;
            break
        end
    end

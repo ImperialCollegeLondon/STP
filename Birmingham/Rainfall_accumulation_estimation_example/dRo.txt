@@ -1,0 +1,8 @@
+dRo.mat
+---
+dRo - Daily rainfall [mm], {i}{m} array.
+
+i - location of a pixel in the domain
+m - month 
+
+For Engelberger catchment- data was derived from the MeteoSwiss gridded daily data (2-km) for the period 1981-2012.
