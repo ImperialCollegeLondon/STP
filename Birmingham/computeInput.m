@@ -9,13 +9,20 @@ region = getfield(REGIONS_info(),'Cleehill');
 inputInfo = getInputInfo(region);
 %% file 1: MeanArealStats
 [Time,inputInfo] = getTime(inputInfo);
-[DATA] = getData(inputInfo);
-[WAR,IMF] = getStormArrivalStats(inputInfo,DATA);
+[WAR,IMF] = deal([]);
+for year = inputInfo.year
+    [DATA_temp] = getData(inputInfo,year);
+    [WAR_temp,IMF_temp] = getStormArrivalStats(inputInfo,DATA_temp);
+    WAR = cat(2,WAR,WAR_temp);
+    IMF = cat(2,IMF,IMF_temp);
+end
 [U500,V500] = getUV(inputInfo);
 [CAR] = NaN;
 MeanArealStats = struct('WAR',WAR','IMF',IMF','Time',Time','CAR',CAR',...
     'U500',U500','V500',V500');
 save('Birmingham/MeanArealStats.mat','MeanArealStats');
+[DATA] = getData(inputInfo,[]);
+clear DATA_temp IMF_temp WAR_temp
 %% file 1: 'CV.mat' 
 % Rainfall coefficient of variation [-], monthly data
 [CV] = getCV(inputInfo,DATA);
@@ -33,6 +40,7 @@ edit('Lagrangian2ARMA.m')
 h = 0.1;
 [covariance,distance] = getSpatialCov(inputInfo,DATA,h);
 save('Birmingham/SpatialCov.mat','covariance','distance','-v7.3')
+%%
 load('Birmingham/SpatialCov.mat','covariance','distance')
 [expoSpatialCorr,cb_theo] = getExpoSpatialCorr(inputInfo,covariance,distance,h);
 expoSpatialCorr = -1./expoSpatialCorr;% transform into: @(expCorr)exp(s*expCorr);(s:unit:km);
@@ -43,41 +51,56 @@ save('Birmingham/expoSpatialCorrelation.mat','expoSpatialCorr')
 % can be also hours or minutes
 [NHRO] = getNHRO(inputInfo,DATA);
 save('Birmingham/NHRO.mat','NHRO')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% file 5: 'gpFitSO.mat' 
 % Generalized Pareto parameters for the observed and simulated daily data
-
+% 
+% For Engelberger catchment- GP parameters were derived from daily MeteoSwiss gridded rainfall data,
+% 2-km resolution, for the period 1981-2012.
+% A 30 years simulation was generated and analyzed for the simulated GP parameres, 
+% see 'Rainfall_accumulation_estimation' for example
+[gpFitO,gpFitS] = getGpFitSO();
+save('Birmingham/gpFitSO.mat','gpFitO','gpFitS')
 
 %% file 6: 'thresholdI.mat'
+[ thresholdI ] = I_Threshold_estimation( );
+save('Birmingham/thresholdI.mat','thresholdI')
 
-
-
-
-
-
-
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% file 7: 'ObsAnnualRain.mat'
+% ObsAnnualRain - Gridded annual rainfall [mm] {Y}(i,j).
+% 1980-2017 CEH-GEAR was used
+[ObsAnnualRain] = getObsAnnualRain(inputInfo,DATA);
+save('Birmingham/ObsAnnualRain.mat','ObsAnnualRain')
 
 %% AUXILLARY Func
 
 function inputInfo = getInputInfo(region)
 inputInfo = struct;
 
-inputInfo.year = 2013;
+inputInfo.year = 2013:2014;
 inputInfo.Er = [region.minE,region.minE+(region.dimE-1)*region.dx];
 inputInfo.Nr = [region.minN,region.minN+(region.dimN-1)*region.dx];
 inputInfo.dt = minutes(5);%min;
 inputInfo.UV = struct;inputInfo.UV.pressure = 500;
 
-inputInfo.datafile = 'H:\CODE_MATLAB\PRS_CLEEHILL_2013.mat';
+inputInfo.datafile = 'H:\CODE_MATLAB\PRS_CLEEHILL_2013-2014.mat';
 end
 function [Time,inputInfo] = getTime(inputInfo)
-inputInfo.time = datetime(inputInfo.year,1,1):inputInfo.dt:...
-    datetime(inputInfo.year+1,1,1)-inputInfo.dt;
+inputInfo.time = datetime(inputInfo.year(1),1,1):inputInfo.dt:...
+    datetime(inputInfo.year(end)+1,1,1)-inputInfo.dt;
 Time = datenum(inputInfo.time);
 end
-function [DATA] = getData(inputInfo)
-load(inputInfo.datafile,'DATA');
+function [DATA] = getData(inputInfo,year)
+% Y1 = load('H:\CODE_MATLAB\PRS_CLEEHILL_2013.mat');
+% Y2 = load('H:\CODE_MATLAB\PRS_CLEEHILL_2014.mat');
+% DATA = appendTime(Y1.DATA,Y2.DATA);
+% save('H:\CODE_MATLAB\PRS_CLEEHILL_2013-2014.mat','DATA','-v7.3');
+if isempty(year)
+    load(inputInfo.datafile,'DATA');
+else
+    load(['H:\CODE_MATLAB\',sprintf('PRS_CLEEHILL_%04d.mat',year)],'DATA');
+end
 end
 function [WAR,IMF] = getStormArrivalStats(inputInfo,DATA)
 WAR = STATS(DATA,'war');
@@ -114,7 +137,7 @@ function [U,V] = getUV(inputInfo)
         N = N/1000;
         time = ncread(era5info.fileN,'time')/24+datenum(datetime(1900,1,1,0,0,0));
         era5info.timestart = find(datetime(datevec(time)).Year==year(1),1);
-        era5info.timeend = find(datetime(datevec(time)).Year==year(end)+1,1)-1;
+        era5info.timeend = find(datetime(datevec(time)).Year==year(end)+1,1);
         era5info.t_len = era5info.timeend-era5info.timestart+1;
         
         era5info.loni = find(min(abs(E-spaceEN(1))) == abs(E-spaceEN(1)));
@@ -155,8 +178,8 @@ function [U,V] = getUV(inputInfo)
         V(V == missval) = NaN;
         V = nanmean(reshape(V,[],size(V,3)),1);
         if inputInfo.dt<=dt
-            U = interp1(time, U, inputInfo.time);
-            V = interp1(time, V, inputInfo.time);
+            U = interp1(time, U, inputInfo.time,'nearest');
+            V = interp1(time, V, inputInfo.time,'nearest');
         else
             % # unfinished #
         end
@@ -174,12 +197,12 @@ function [expoSpatialCorr,cb_theo] = getExpoSpatialCorr(inputInfo,covariance,dis
 for mon = 1:12
     cb_obs = nanmean(covariance{mon},2);
     s = distance{1};
-    IniNo = 2;% increase for preventing local optima;
+    IniNo = 5;% increase for preventing local optima;
     opts = optimoptions(@fmincon,'Display','iter','TolX',10^-6,...
         'TolFun',10^-6,'MaxIter',10^5,'MaxFunEvals',10^5,...
         'UseParallel','always','Algorithm','sqp');
     problem = createOptimProblem('fmincon','objective',...
-        @(a)obj(a,cb_obs),'x0',10,'lb',5,'ub',100,'options',opts);
+        @(a)obj(a,cb_obs),'x0',10,'lb',1,'ub',100,'options',opts);
     ms = MultiStart('StartPointsToRun','bounds-ineqs','MaxTime',20*60);
     [expoSpatialCorr(mon,1),fval] = run(ms,problem,IniNo);
     cb_theo = getCB_THEO(expoSpatialCorr(mon,1));
@@ -249,7 +272,7 @@ function [NHRO] = getNHRO(inputInfo,DATA)
 dailyThre = 1;
 NHRO = struct('occurrence', cell(1, 12));
 for mon = 1:12
-    for year = 2001:2017
+    for year = 1980:2017
         date0 = datenum(datetime(year,mon,1):days(1):datetime(year,mon,eomday(year,mon)));
         [~,~,RAIN] = import_GEAR_DAILY(DATA.XX,DATA.YY,...
             date0,[]);
@@ -257,8 +280,28 @@ for mon = 1:12
     end
 end
 end
-
-
+function [gpFitO,gpFitS] = getGpFitSO(inputInfo,DATA)
+gpFitO = cell(1,2);
+% param1: gpFitO{1,1}{1,mon}[loc1,loc2];
+% param2: gpFitO{1,2}{1,mon}[loc1,loc2];
+for mon = 1:12
+    
+end
+end
+function [ObsAnnualRain] = getObsAnnualRain(inputInfo,DATA)
+% CEH-GEAR daily data was used (period:...)
+dailyThre = 1;
+NHRO = struct('occurrence', cell(1, 12));
+yearTag = 1;
+ObsAnnualRain = [];
+for year = 1980:2017
+    date0 = datenum(datetime(year,1,1):days(1):datetime(year,12,31));
+    [~,~,RAIN] = import_GEAR_DAILY(DATA.XX,DATA.YY,...
+        date0,[]);
+    ObsAnnualRain{yearTag} = nanmean(RAIN,3)*length(date0);
+    yearTag = yearTag + 1;
+end
+end
 
 
 
