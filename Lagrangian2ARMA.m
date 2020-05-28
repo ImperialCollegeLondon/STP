@@ -10,7 +10,7 @@ for calEvent = calEvents_Lagrangian'
     [RTime] = getTime(calEvent);
     % remove those events with missing data
     if any(isnan(R(:)))
-        % # to confirm #
+        % # to be confirmed #
         % correct NaN val into ...
         if nanmean(isnan(R(:)))<0.1
             R(isnan(R(:))) = rand(nansum(isnan(R(:))),1)*1*nanmean(R(:));
@@ -24,13 +24,15 @@ for calEvent = calEvents_Lagrangian'
         Rmon(evi,1) = RTime(1).Month;
     end
 end
+
 %% Estimate ARMA coef. (p [1,4], q [0,4])
 [ ARMA, mean_spatial_correlation ] = ARMA_estimate( Rains, 1, true );
 pause(1)
 savePlot(['Figs\Lagrangian\event',num2str(evi),'-ARMAfit'],...
     'wholepage',true,'onlyPng',true,'needreply','N');
 close(gcf);
-save('Birmingham\ARMA.mat','ARMA','mean_spatial_correlation','Rains','-v7.3')
+save('Birmingham\ARMA.mat','ARMA','mean_spatial_correlation','-v7.3')
+save('Birmingham\ARMA_Rains.mat','Rains','-v7.3')
 %% Plot Fitting result
 figure;
 colm = flip(pink(14),1);

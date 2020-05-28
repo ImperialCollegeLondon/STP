@@ -12,50 +12,38 @@
 %
 
 %% Configuration
-clear;clc
-
-[OBSDATA] = getData();
-
+% clear;clc
+[OBSDATA] = getData(inputInfo);
 ObsSUMMARY = struct;
 ObsSUMMARY.meanTimeseries = nanmean(OBSDATA,'timeseries');
 ObsSUMMARY.meanSpatial = nanmean(OBSDATA,'Spatial');
 ObsSUMMARY.WAR = STATS(OBSDATA,'war');
-
 %% Split Storms and calculate velocity
-
 EventSUMMARY = struct;
-
 [ObsSUMMARY.radarIsEvent] = findRadarEvents(ObsSUMMARY.WAR,OBSDATA.dt);
 [Events] = getStorms(OBSDATA,ObsSUMMARY.radarIsEvent);
-
 EventSUMMARY.velocity = arrayfun(@(event)Advection(event,0.1),Events);
 EventSUMMARY.velocity = arrayfun(@(vel)smooth(vel,6),EventSUMMARY.velocity);
-
 % select Storms advected with a constant velocity (approximately)
 EventSUMMARY.okTag = selectStorms(EventSUMMARY.velocity,OBSDATA.dt);
 calEvents = Events(EventSUMMARY.okTag);
 speed = getStormSpeed(EventSUMMARY.velocity(EventSUMMARY.okTag));
-
-
 %% Transform to Lagrangian System
 dim = 500;
 [calEvents500_Eulerian] = expandEventsDomain(calEvents,dim);
 [calEvents500_Lagrangian] = transLagrangian(calEvents500_Eulerian,speed);
-
 dim = 110;
 calEvents_Lagrangian = cutEventsDomain(calEvents500_Lagrangian,dim);
-
 warning on
 save('H:\CODE_MATLAB\calEvents500_Eulerian.mat','calEvents500_Eulerian','-v7.3');
 save('H:\CODE_MATLAB\calEvents500_Lagrangian.mat','calEvents500_Lagrangian','-v7.3');
 clear calEvents500_Eulerian calEvents500_Lagrangian
-
 save('H:\CODE_MATLAB\calEvents.mat','calEvents','speed','EventSUMMARY','ObsSUMMARY');
 save('H:\CODE_MATLAB\calEvents_Lagrangian.mat','calEvents_Lagrangian','-v7.3');
 
-
-
 %% visualise
+load('H:\CODE_MATLAB\calEvents500_Eulerian.mat','calEvents500_Eulerian');
+load('H:\CODE_MATLAB\calEvents500_Lagrangian.mat','calEvents500_Lagrangian');
 unit = 1000;
 XX = calEvents500_Eulerian.XX;
 YY = calEvents500_Eulerian.YY;
@@ -79,8 +67,6 @@ for evi = 1:numel(calEvents500_Lagrangian)
         'needreply','N');
     close(gcf);
 end
-
-
 %% AUXILLARY FUNCTION
 
 function [qFields] = transLagrangian(calEvents,calSpeed)
@@ -189,9 +175,9 @@ end
 
 end
 
-function [DATA] = getData()
+function [DATA] = getData(inputInfo)
 
-load('H:\CODE_MATLAB\PRS_Birm_2013.mat','DATA');
+load(inputInfo.datafile,'DATA');
 
 end
 

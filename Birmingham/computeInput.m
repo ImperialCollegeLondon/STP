@@ -4,11 +4,9 @@
 % 110 Km * 110 Km
 % @ Yuting Chen
 % ------------------------------------------------------------------- %
-
 %% configuration
-region = getfield(REGIONS_info(),'Westuk');
+region = getfield(REGIONS_info(),'Cleehill');
 inputInfo = getInputInfo(region);
-
 %% file 1: MeanArealStats
 [Time,inputInfo] = getTime(inputInfo);
 [DATA] = getData(inputInfo);
@@ -29,17 +27,21 @@ save('Birmingham/CV.mat','CV');
 % including: 'ARMA'; 'mean_spatial_correlation','Rains'
 edit('Eulerian2Lagrangian.m')
 edit('Lagrangian2ARMA.m')
-%% file 3: 'expoSpatialCorrelation.mat') 
+%% file 3: 'expoSpatialCorrelation.mat'
+% # time consuming #
 % Exponential coefficient of the spatial correlation
-[covariance,distance] = getSpatialCov(inputInfo,DATA);
+h = 0.1;
+[covariance,distance] = getSpatialCov(inputInfo,DATA,h);
 save('Birmingham/SpatialCov.mat','covariance','distance','-v7.3')
-%%
-[expoSpatialCorr] = getExpoSpatialCorr(inputInfo,covariance,distance);
+load('Birmingham/SpatialCov.mat','covariance','distance')
+[expoSpatialCorr,cb_theo] = getExpoSpatialCorr(inputInfo,covariance,distance,h);
+expoSpatialCorr = -1./expoSpatialCorr;% transform into: @(expCorr)exp(s*expCorr);(s:unit:km);
+save('Birmingham/expoSpatialCorrelation.mat','expoSpatialCorr')
 %% file 4: 'NHRO.mat' 
 % Non homogenic rainfall ocurrence; 
 % in this example number of days above a certain threshold, 
 % can be also hours or minutes
-
+[NHRO] = getNHRO(inputInfo,DATA);
 
 %% file 5: 'gpFitSO.mat' 
 % Generalized Pareto parameters for the observed and simulated daily data
@@ -58,8 +60,6 @@ save('Birmingham/SpatialCov.mat','covariance','distance','-v7.3')
 
 %% AUXILLARY Func
 
-
-
 function inputInfo = getInputInfo(region)
 inputInfo = struct;
 
@@ -69,7 +69,7 @@ inputInfo.Nr = [region.minN,region.minN+(region.dimN-1)*region.dx];
 inputInfo.dt = minutes(5);%min;
 inputInfo.UV = struct;inputInfo.UV.pressure = 500;
 
-inputInfo.datafile = 'H:\CODE_MATLAB\PRS_Birm_2013.mat';
+inputInfo.datafile = 'H:\CODE_MATLAB\PRS_CLEEHILL_2013.mat';
 end
 function [Time,inputInfo] = getTime(inputInfo)
 inputInfo.time = datetime(inputInfo.year,1,1):inputInfo.dt:...
@@ -126,11 +126,9 @@ function [U,V] = getUV(inputInfo)
         if any([era5info.loni,era5info.lonlen,era5info.lati,era5info.latlen]<=0)
             f = msgbox('Climate Data Format (N Axis) is changed! Please Contact Yuting to modify code', 'Error','error');
         end
-        
         if any([E(:),N(:)] > 1e4)
             f = msgbox('Climate Data Format (E,N) is changed! Please Contact Yuting to modify code', 'Error','error');
         end
-        
     end
 
     function [U,V,time,missval,dt] = getERA5(era5info)
@@ -174,12 +172,51 @@ for mon = 1:12
     CV(mon,1) = STATS(monthData,'cvpos');
 end
 end
-
-function [covariance,distance] = getExpoSpatialCorr(inputInfo,covariance,distance)
-[covariance,distance] = deal([]);
+function [expoSpatialCorr,cb_theo] = getExpoSpatialCorr(inputInfo,covariance,distance,h)
+[expoSpatialCorr] = deal([]);
+for mon = 1:12
+    cb_obs = nanmean(covariance{mon},2);
+    s = distance{1};
+    IniNo = 2;% increase for preventing local optima;
+    opts = optimoptions(@fmincon,'Display','iter','TolX',10^-6,...
+        'TolFun',10^-6,'MaxIter',10^5,'MaxFunEvals',10^5,...
+        'UseParallel','always','Algorithm','sqp');
+    problem = createOptimProblem('fmincon','objective',...
+        @(a)obj(a,cb_obs),'x0',10,'lb',5,'ub',100,'options',opts);
+    ms = MultiStart('StartPointsToRun','bounds-ineqs','MaxTime',20*60);
+    [expoSpatialCorr(mon,1),fval] = run(ms,problem,IniNo);
+    cb_theo = getCB_THEO(expoSpatialCorr(mon,1));
+    subplot(3,4,mon)
+    plot(cb_obs);hold on;plot(cb_theo,'k-');
+    title(getMonthName(mon))
+    drawnow
 end
-
-function [covariance,distance] = getSpatialCov(inputInfo,DATA)
+    function res = obj(alpha_g,cb_obs)
+        cb_theo = getCB_THEO(alpha_g);
+        rmse = @(sim,obs)sqrt(nanmean(((sim(:))-(obs(:))).^2));
+        res = rmse(cb_theo,cb_obs);
+    end
+    function cb_theo = getCB_THEO(alpha_g)
+        cb_theo = zeros(length(distance),1);
+        for i = 1:length(s)
+            s_this = s(i);
+            cb_theo(i,1) = func_cbs(alpha_g,s_this,h);
+        end
+    end
+    function cb_s = func_cbs(alpha_g,s_this,h)
+        % all input/output is scalar
+        expFunc = @(s,alpha)exp(-s/alpha);% exp(-s/alpha_g);
+        cg_s = expFunc(s_this,alpha_g);
+        cg_0 = expFunc(0,alpha_g);
+        f1 = @(a,b)exp(-(a.^2+b.^2-2*cg_s*a.*b)./(2*(1-cg_s.^2)))./...
+            (2*pi*sqrt(1-cg_s^2));
+        r = integral(@(y)exp(-y.^2/2/cg_0),h,Inf,'RelTol',1e-8,'AbsTol',1e-13)...
+            /sqrt(2*pi*cg_0);
+        ps = integral2(@(a,b)f1(a,b),h,Inf,h,Inf,'RelTol',1e-8,'AbsTol',1e-13);
+        cb_s = ps-r^2;
+    end
+end
+function [covariance,distance] = getSpatialCov(inputInfo,DATA,h)
 [r,disI,disJ,Ind_is,Ind_js] = deal([]);
 [covariance,distance] = deal([]);
 for mon = 1:12
@@ -188,18 +225,17 @@ for mon = 1:12
     [covariance{mon,1},distance{mon,1}] = caliSpatialCoef(monthData);
     title(getMonthName(mon));
     drawnow
+    save('Birmingham/SpatialCov.mat','covariance','distance','-v7.3')
 end
     function [covariance,distance] = caliSpatialCoef(monthData)
         covariance = [];
-        h = 0.1;
         binaryRain = originalData(monthData)>h;
         setStart = 1;
         thisWholeLen = size(binaryRain,3);
-        setLen = thisWholeLen; % 2000;
+        setLen = thisWholeLen; % 2000; % depends on PC's RAM.
         for setNo = 1:ceil(thisWholeLen/setLen)
-            tic
             setInd = setStart:1:min(setStart+setLen-1,thisWholeLen);
-            unit = 1000;
+            unit = 1000;%m-km
             if ~isempty(setInd)
                 [covariance_temp,distance,r,disI,disJ,Ind_is,Ind_js]=spatialcov(...
                     monthData.XX/unit,monthData.YY/unit,...
@@ -207,17 +243,23 @@ end
                     Ind_is,Ind_js);
                 setStart = setInd(end)+1;
             end
-            toc
         end
         covariance = cat(2,covariance,covariance_temp);
-        drawnow
     end
 end
-
-
-
-
-
+function [NHRO] = getNHRO(inputInfo,DATA)
+% CEH-GEAR daily data was used (period:...)
+dailyThre = 1;
+NHRO = struct('occurrence', cell(1, 12));
+for mon = 1:12
+    for year = 2010:2015%2010:2015%2001:2017
+        date0 = datenum(datetime(year,mon,1):days(1):datetime(year,mon,eomday(year,mon)));
+        [~,~,RAIN] = import_GEAR_DAILY(DATA.XX,DATA.YY,...
+            date0,[]);
+        NHRO(mon).occurrence(end+1,:) = nansum(reshape(RAIN,[],size(RAIN,3))>dailyThre,2);
+    end
+end
+end
 
 
 
