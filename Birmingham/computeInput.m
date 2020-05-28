@@ -42,7 +42,7 @@ save('Birmingham/expoSpatialCorrelation.mat','expoSpatialCorr')
 % in this example number of days above a certain threshold, 
 % can be also hours or minutes
 [NHRO] = getNHRO(inputInfo,DATA);
-
+save('Birmingham/NHRO.mat','NHRO')
 %% file 5: 'gpFitSO.mat' 
 % Generalized Pareto parameters for the observed and simulated daily data
 
@@ -132,7 +132,6 @@ function [U,V] = getUV(inputInfo)
     end
 
     function [U,V,time,missval,dt] = getERA5(era5info)
-        
         fileN = era5info.fileN;
         loni = era5info.loni;
         lati = era5info.lati;
@@ -149,9 +148,7 @@ function [U,V] = getUV(inputInfo)
         time = datetime(datevec(ncread(fileN,'time',timei,timelen)/24+datenum(datetime(1900,1,1,0,0,0))));
         missval = -32767;
         dt = hours(1);
-        
     end
-
     function [U,V] = formulateUV(inputInfo,U,V,time,missval,dt)
         U(U == missval) = NaN;
         U = nanmean(reshape(U,[],size(U,3)),1);
@@ -252,7 +249,7 @@ function [NHRO] = getNHRO(inputInfo,DATA)
 dailyThre = 1;
 NHRO = struct('occurrence', cell(1, 12));
 for mon = 1:12
-    for year = 2010:2015%2010:2015%2001:2017
+    for year = 2001:2017
         date0 = datenum(datetime(year,mon,1):days(1):datetime(year,mon,eomday(year,mon)));
         [~,~,RAIN] = import_GEAR_DAILY(DATA.XX,DATA.YY,...
             date0,[]);
