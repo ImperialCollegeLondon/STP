@@ -1,4 +1,4 @@
-for YEAR = 2015:2018
+for YEAR = [2007:2012,2015:2018]
     x_yr = inputInfo.Er(1):inputInfo.Er(end);
     y_yr = inputInfo.Nr(1):inputInfo.Nr(end);
     [XX,YY] = meshgrid(x_yr*1000,y_yr*1000);
