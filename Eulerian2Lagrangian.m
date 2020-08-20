@@ -67,14 +67,12 @@ for evi = 1:numel(calEvents500_Lagrangian)
         'needreply','N');
     close(gcf);
 end
+
 %% AUXILLARY FUNCTION
-
 function [qFields] = transLagrangian(calEvents,calSpeed)
-
 dt = 5;
 dx = 1;
 qFields = arrayfun(@(data,speed)toLagrangian(data,speed),calEvents,calSpeed);
-
     function newData = toLagrangian(data,speed)
         rain = originalData(data,'double');
         rain = single(rain);
@@ -112,11 +110,8 @@ calEvents_central = arrayfun(@(data)cutDomain(data,dim),calEvents);
     end
 end
 
-
 function [calEvents_bigger] = expandEventsDomain(calEvents,dim)
-
 calEvents_bigger = arrayfun(@(data)expandDomain(data,dim),calEvents);
-
     function PRS = expandDomain(data,dim)
         unit = 1000;
         x_yr = data.XX(1,1)-(dim/2-55)*unit:1000:data.XX(1,1)+(dim/2+54)*unit;
@@ -127,15 +122,12 @@ calEvents_bigger = arrayfun(@(data)expandDomain(data,dim),calEvents);
 end
 
 function speed = getStormSpeed(velocity)
-
 % speed = arrayfun(@(x)updateAdvection(x,...
 %     nanmean(x.Vx),nanmean(x.Vy),nanmean(x.Vstd),nanmean(x.Vdir)),velocity);
 speed = velocity;
-
 end
 
 function okTag = selectStorms(velocity,dt)
-
 Vstd = arrayfun(@(x)nanmean(x.Vstd),velocity);
 Vdir = arrayfun(@(x)nanmean(x.Vdir),velocity);
 Dur = arrayfun(@(x)length(x.Vdir)*dt/60,velocity);%[hour]
@@ -143,12 +135,10 @@ Dur = arrayfun(@(x)length(x.Vdir)*dt/60,velocity);%[hour]
 thre_VEstd = nanmean(Vstd);
 thre_VEdir = nanmean(Vdir);
 okTag = (Vstd<thre_VEstd) & (Vdir<thre_VEdir) & (Dur>3);
-
 end
 
 
 function radarIsEvent = findRadarEvents(WAR,dt)
-
 minDur = 60;% min;
 sepThre = 2;% hour
 % seperate & find all events
@@ -159,7 +149,6 @@ EvNo = [zeros(1,stormsi(1)-1),cell2mat(arrayfun(@(si,nsi,li,evi)...
     [stormsi(2:end),length(WAR)+1],lengthi,1:length(stormsi),'UniformOutput', false))];
 
 radarIsEvent = EvNo;% with Tag of eventNo
-
 end
 
 function [Event] = getStorms(obsDATA,isEvent)

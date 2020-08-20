@@ -7,7 +7,7 @@ function [ radarIsEvent ] = findRadarEvents( radarWAR , thresholdWAR , threshold
 %   Output:
 %   radarIsEvent - time series of the wet events indexed by ID
 %% Initilazing
-radarIsEvent=zeros(size(radarWAR));
+radarIsEvent=zeros(length(radarWAR),1);
 WAR(radarWAR>=thresholdWAR,1)=1;
 for i=6:size(WAR,1)-6 % Correcting time series of radar data for wet events hiatus
     if sum(WAR(i-5:i-1))>=1 && sum(WAR(i+1:i+5))>=1 && WAR(i)==0

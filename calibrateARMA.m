@@ -1,22 +1,25 @@
+% ----------------------------------------------------------------------- %
 %
-% calibrate ARMA coef.
+% Calibrate ARMA coef.
 %
+%
+% Method:
+% All time series of variables are kept same as observed.
+% Only advection are randomly sampled.
+%
+% ----------------------------------------------------------------------- %
 
-% method:
-% all time series of variables are kept same as observed.
-% only advection are randomly sampled.
 clear;clc
 close all
 
 dx = 1;%2
 dt = 5;
 domainSize = 110;%13
-WAR_threshold = 0.02;%0.1;
-YEAR = 2007;
-stormi = 1:10;
+WAR_threshold = 0.1;%0.1;
+YEAR = 2015;
+% stormi = 1:10;
 % ARMA_test = struct('ar',0.98,'ma',[]);
-load('H:\CODE_MATLAB\AWE-GEN-2D\Birmingham\ARMA.mat')
-ARMA_test = ARMA(1);
+% load('H:\CODE_MATLAB\AWE-GEN-2D\Birmingham\ARMA.mat')
 
 times = tic;
 rng('shuffle');
@@ -34,81 +37,82 @@ tsMonth = datetime(datevec(radarIsEvent(:,2))).Month;
 tsYear = datetime(datevec(radarIsEvent(:,2))).Year;
 [ tsMatrix ] = tsTable( double(tsWetDry(tsYear == YEAR)') , tsMonth(tsYear == YEAR)' );
 tsMatrix(tsMatrix(:,1)==0,:) = [];% only simulate wet period to save computational time
-tsMatrix = tsMatrix(stormi,:);
+% tsMatrix = tsMatrix(stormi,:);
 % observed WAR, IMF
 obsWAR = MeanArealStats.WAR(tsYear==YEAR,1);
 obsIMF = MeanArealStats.IMF(tsYear==YEAR,1);
-obsIMF = fillmissing(obsIMF, 'previous');
-obsWAR = fillmissing(obsWAR, 'previous');
 % [simU,simV] = getSimUV(tsMatrix);
 [simU,simV] = getObsUV(tsMatrix,MeanArealStats);
 
 %% Generating rain fields %(only for a certain amount of storms)
+
+DECAY_TEST = -1./linspace(10,200,20);
+
+% decayA_test = -0.004;
+for expNo = 3%1:length(DECAY_TEST)
+decayA_test = DECAY_TEST(expNo);
 simRain=NaN(105120,domainSize,domainSize);
 QField = [];
 progressbar('Generating rain fields') % Init single bar
 for m=1:12
     tic
     if ~isempty(min(tsMatrix(tsMatrix(:,2)==m,3)))
-    mmin(m,1)=min(tsMatrix(tsMatrix(:,2)==m,3));
-    mmax(m,1)=max(tsMatrix(tsMatrix(:,2)==m,4));
-    [ QField(mmin(m,1):mmax(m,1),:,:) ] = quantileFieldGen( [domainSize*2 domainSize*2] , ARMA_test , 5 , ...
-        Precipitation.data(m).SpatialAlpha , [mmin(m,1) mmax(m,1)] , simU , simV , dx , dt );
-    %% Non-homogeneous probability of precipitation occurrence
-    for i=mmin(m,1):mmax(m,1)
-        [ simRain(i,:,:) ] = NHPO( squeeze(QField(i,:,:)) , obsWAR(i) , obsOCC{m} );
-    end
-    %% Assigning rainfall intensity for the Gaussian field
-    for i=1:size(tsMatrix,1)
-        M=tsMatrix(i,2);
-        if tsMatrix(i,1)==1 && m==M
-            [ simRain(tsMatrix(i,3):tsMatrix(i,4),:,:) ] = invLN2( simRain(tsMatrix(i,3):tsMatrix(i,4),:,:) , ...
-                obsWAR(tsMatrix(i,3):tsMatrix(i,4)) , obsIMF(tsMatrix(i,3):tsMatrix(i,4)) , CV(m));
+        mmin(m,1)=min(tsMatrix(tsMatrix(:,2)==m,3));
+        mmax(m,1)=max(tsMatrix(tsMatrix(:,2)==m,4));
+        [ QField(mmin(m,1):mmax(m,1),:,:) ] = quantileFieldGen_ARMA( [domainSize*2 domainSize*2] , decayA_test , 5 , ...
+            Precipitation.data(m).SpatialAlpha , [mmin(m,1) mmax(m,1)] , simU , simV , dx , dt );
+        %% Non-homogeneous probability of precipitation occurrence
+        for i=mmin(m,1):mmax(m,1)
+            [ simRain(i,:,:) ] = NHPO( squeeze(QField(i,:,:)) , obsWAR(i) , obsOCC{m}*0+1 );
         end
-    end
+        %% Assigning rainfall intensity for the Gaussian field
+        for i=1:size(tsMatrix,1)
+            M=tsMatrix(i,2);
+            if tsMatrix(i,1)==1 && m==M
+                [ simRain(tsMatrix(i,3):tsMatrix(i,4),:,:) ] = invLN2( simRain(tsMatrix(i,3):tsMatrix(i,4),:,:) , ...
+                    obsWAR(tsMatrix(i,3):tsMatrix(i,4)) , obsIMF(tsMatrix(i,3):tsMatrix(i,4)) , CV(m));
+            end
+        end
     end
     progressbar(m/12) % Update progress bar
     toc
 end
+
 timee = toc(times);
+simRain(isnan(simRain))=0;
+simRain=single(simRain);
+toc
+
+% Saving output
+warning on
+simRain = permute(simRain,[2,3,1]);
+simRain = int16(simRain*32);
+
 %%
-fprintf('Total time required: %3.1f seconds\n',timee);
-load(['H:\CODE_MATLAB\',sprintf('PRS_CLEEHILL_%04d.mat',YEAR)],'DATA');
-%%
-simStorm = [];
-h = figure;
-for i=1:size(tsMatrix,1)
-    stormInd = tsMatrix(i,3):tsMatrix(i,4);
-    simStorm{i} = squeeze(simRain(stormInd,:,:));
-    simStorm{i} = reshape(simStorm{i},size(simStorm{i},1),[]);
-    simStorm{i} = fillmissing(simStorm{i}, 'previous');
-    obsStorm{i} = permute(squeeze(originalData(extractOnePeriod(DATA,stormInd))),[3,1,2]);
-    obsStorm{i} = reshape(obsStorm{i},size(simStorm{i},1),[]);
-    subplot(2,1,1)
-    plotACF(obsStorm{i});hold on;plotACF(simStorm{i});
-    title('Autocorrelation');
-    xlabel('Lags');ylabel('Acorr')
-    ylim([-0.1,1])
-    subplot(2,1,2)
-    plot(obsIMF(tsMatrix(i,3):tsMatrix(i,4)));hold on;
-    plot(nanmean(reshape(simStorm{i},size(simStorm{i},1),[]),2))
-    title('Areal Mean Precipitation');
-    xlabel('Time steps[5min]');ylabel('IMF[mm/h]')
-    clf(h)
+
+[Time,XX,YY] = getDataAttributes(105120,dt);
+simDATA = RainfallDataClass(simRain,-1,32,'mm/h',...
+    Time,XX,YY);
+save(['K:\DATA_ARMA_TRIALANDERROR\expNo',sprintf('%03d.mat',expNo)],...
+    'simDATA','-v7.3'); % Matlab
+
+clear simRain simDATA
+
 end
 
-
-
-function acf = plotACF(rain)
-acf = [];
-for sitei = 1:size(rain,2)
-    [acf(sitei,:),lags,bounds] = autocorr(rain(:,sitei),20);
-end
-plot(lags,nanmean(acf,1));
-end
-
+% save(['K:\DATA_ARMA_TRIALANDERROR\inputObs.mat'],...
+%     'obsIMF','obsOCC','obsWAR','simU','simV','tsMatrix','tsMonth','tsWetDry','tsYear','-v7.3'); % Matlab
 
 %% AUXILLARY function
+function [Time,XX,YY] = getDataAttributes(TNo,dt)
+region = getfield(REGIONS_info(),'Cleehill');
+inputInfo = getInputInfo(region);
+Time = datetime(2017,1,1):minutes(dt):datetime(2018,1,1)-minutes(dt);
+Time = Time(1:TNo);
+XX = inputInfo.XX;
+YY = inputInfo.YY;
+end
+
 function [obsU,obsV] = getObsUV(tsMatrix,MeanArealStats)
 % obsU = MeanArealStats.U500(tsYear==YEAR,1);
 % obsV = MeanArealStats.V500(tsYear==YEAR,1);
@@ -119,6 +123,7 @@ for i=1:size(tsMatrix,1)
     obsV(tsMatrix(i,3):tsMatrix(i,4),1)=MeanArealStats.V500(tsMatrix(i,3):tsMatrix(i,4));
 end
 end
+
 function [simU,simV] = getSimUV(tsMatrix)
 Advection = load('Files\Advection.mat');
 %% Simulating advection
