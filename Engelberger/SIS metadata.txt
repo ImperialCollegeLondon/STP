@@ -1,6 +1,0 @@
-SIS.mat
----
-
-SIS - Annual mean solar incoming shortwave radiation [W m^-2] 
-
-For Engelberger catchment- Data were derived from the MeteoSwiss gridded data set for the period 2004-2012.

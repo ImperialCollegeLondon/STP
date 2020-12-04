@@ -1,6 +1,0 @@
-LRdata.mat
----
-
-Hourly temperature data [deg Celsius]. First two columns represents station data and third column is date.
-
-For Engelberger catchment- data was derived from MeteoSwiss stations of Luzern (454 asl) and Pilatus (2106 asl) for the period 1984-2014.

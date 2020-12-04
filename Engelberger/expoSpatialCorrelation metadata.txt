@@ -1,5 +1,0 @@
-expoSpatialCorrelation.mat
----
-expoSpatialCorrelation - The exponential coefficient for the rainfall spatial correlation.
-
-For Engelberger catchment- Derived using the MeteoSwiss radar system, 2003-2010, 22-km domain and 2-km grid

@@ -1,8 +1,0 @@
-ObsAnnualTemp.mat
----
-ObsAnnualTemp - Gridded annual temperature [deg C] {Y}(i,j). 
-
-Y - Years
-i,j - domain size
-
-For Engelberger catchment- Gridded annual rainfall data [mm] was derived from daily MeteoSwiss gridded rainfall data, 2-km resolution, for the period 1981-2012.

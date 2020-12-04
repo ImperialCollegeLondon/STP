@@ -1,2 +1,0 @@
-skew and kurt statistics obtained from observed series
-a normal (mu,std) distribution was fitted for each bootstrapped data (1000 samples) 
