@@ -1,2 +1,2 @@
 # STP
-all moved
+all removed
